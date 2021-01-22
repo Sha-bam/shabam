@@ -1,0 +1,13 @@
+# To run: conda env create -f environment.yml
+name: shabam
+channels:
+    - conda-forge
+dependencies:
+    - python=3.8
+    - pip
+    - numpy
+    - matplotlib
+    - imageio
+    - tensorflow
+    - keras
+    
