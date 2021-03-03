@@ -1,6 +1,9 @@
 import struct
 import os
 import stempeg
+import librosa
+import numpy as np
+import librosa.display
 '''
 Pulled from: https://mikesmales.medium.com/sound-classification-using-deep-learning-8bc2aa1990b7
 '''
@@ -39,3 +42,17 @@ def load_data(path):
                 file_path = f'{path}/{folder}/{file}'
                 print(file_path)
                 S, rate = stempeg.read_stems(file_path)
+
+
+def extract_features(file_name):
+
+    try:
+        audio, sample_rate = librosa.load(file_name, res_type='kaiser_fast')
+        mfccs = librosa.feature.mfcc(y=audio, sr=sample_rate, n_mfcc=40)
+        mfccsscaled = np.mean(mfccs.T, axis=0)
+
+    except Exception as e:
+        print("Error encountered while parsing file: ", file_name)
+        return None
+
+    return mfccsscaled
