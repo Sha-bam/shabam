@@ -10,4 +10,7 @@ dependencies:
     - imageio
     - tensorflow
     - keras
-    
+    - scipy
+    - scikit_posthocs
+    - librosa
+    - torchaudio
