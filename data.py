@@ -59,13 +59,15 @@ def load_audio(
 
         return sig, rate
 class GunshotForensicDataset(torch.utils.data.Dataset):
-    def __init__(self , root: Union[Path, str], seq_duration: Optional[float] = None,target: str = "caliber", source_augmentations: Optional[Callable] = None) -> None:
+    def __init__(self , root: Union[Path, str], seq_duration: Optional[float] = None,target: str = "caliber", source_augmentations: Optional[Callable] = None, resample_freq: int = 0) -> None:
 
         self.root = root
         self.seq_duration = seq_duration
         self.source_augmentations = source_augmentations
         self.df = pd.read_csv('./gun.csv')
         self.target = target
+        self.resample_freq = resample_freq
+        self.n_mels = 64 #hyperparameter we must configure witha rgs
         
 
     def __getitem__(self, index: int) -> Any:
@@ -74,14 +76,32 @@ class GunshotForensicDataset(torch.utils.data.Dataset):
         row = self.df.loc[self.df['id'] == index]
 
         target = row[self.target].to_dict()[index]
-        print(target)
-        print(row['path'])
         a = row['path']
         
         load_path = "./data" + a.to_dict()[index][1:]
-        b = load_audio(load_path)
+        soundData, sample_rate = load_audio(load_path)
+        #resamples data to diff frequency
+        if self.resample_freq > 0:
+            resample_transform = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=self.resample_freq)
+            soundData = resample_transform(soundData)
 
-        return b, target
+        # converts audio to mono
+        melspectrogram_transform = torchaudio.transforms.MelSpectrogram(
+            sample_rate=self.resample_freq,
+            n_mels=self.n_mels,
+        )
+        melspectrogram = melspectrogram_transform(soundData)
+        melspectogram_db = torchaudio.transforms.AmplitudeToDB()(melspectrogram)
+
+        fixed_length = 3 * (self.resample_freq//200)
+        if melspectogram_db.shape[2] < fixed_length:
+            melspectogram_db = torch.nn.functional.pad(
+            melspectogram_db, (0, fixed_length - melspectogram_db.shape[2]))
+        else:
+            melspectogram_db = melspectogram_db[:, :, :fixed_length]
+
+
+        return soundData, self.resample_freq, melspectogram_db, target
         
     def __len__(self) -> int:
         return len(self.df)
@@ -98,5 +118,6 @@ class GunshotForensicDataset(torch.utils.data.Dataset):
 
 if __name__ == "__main__":
     data = GunshotForensicDataset(root="./",seq_duration=5.0)
-    print(data[1])
-    
+    soundData, resample_freq, mel, target = data[192]
+    print(mel)
+    print(soundData)
