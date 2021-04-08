@@ -3,3 +3,4 @@ data/*
 __pyache__/
 .ipynb_checkpoints/
 __pycache__/
+.vscode/

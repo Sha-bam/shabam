@@ -1,3 +1,6 @@
+import torch.nn as nn
+import torch
+import torch.tensor
 class TorchSTFT(nn.Module):
     """Multichannel Short-Time-Fourier Forward transform
     uses hard coded hann_window.
@@ -22,7 +25,7 @@ class TorchSTFT(nn.Module):
         self.n_hop = n_hop
         self.center = center
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """STFT forward path
         Args:
             x (Tensor): audio waveform of

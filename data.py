@@ -7,7 +7,9 @@ import torch
 import torch.utils.data
 import torchaudio
 import tqdm
-
+import numpy as np
+from transforms import TorchSTFT
+import librosa
 def load_info(path: str) -> dict:
     """Load audio metadata
     this is a backend_independent wrapper around torchaudio.info
@@ -59,7 +61,7 @@ def load_audio(
 
         return sig, rate
 class GunshotForensicDataset(torch.utils.data.Dataset):
-    def __init__(self , root: Union[Path, str], seq_duration: Optional[float] = None,target: str = "caliber", source_augmentations: Optional[Callable] = None, resample_freq: int = 0) -> None:
+    def __init__(self , root: Union[Path, str], seq_duration: Optional[float] = None,target: str = "caliber", source_augmentations: Optional[Callable] = None, resample_freq: int = 44100, n_mels: int =200) -> None:
 
         self.root = root
         self.seq_duration = seq_duration
@@ -67,8 +69,13 @@ class GunshotForensicDataset(torch.utils.data.Dataset):
         self.df = pd.read_csv('./gun.csv')
         self.target = target
         self.resample_freq = resample_freq
-        self.n_mels = 64 #hyperparameter we must configure witha rgs
+        self.n_mels =  n_mels #hyperparameter we must configure with args
+        self.features = list(set(self.df[self.target].to_list()))
+        self.features.sort()
+        self.num_features = len(self.features)
         
+    def get_index(self, classif: str):
+        return self.features.index(classif)
 
     def __getitem__(self, index: int) -> Any:
         start = 0
@@ -79,33 +86,30 @@ class GunshotForensicDataset(torch.utils.data.Dataset):
         a = row['path']
         
         load_path = "./data" + a.to_dict()[index][1:]
-        soundData, sample_rate = load_audio(load_path)
-        #resamples data to diff frequency
+        info = load_info(load_path)
+        soundData, sample_rate = load_audio(load_path, dur= self.seq_duration,info=info)
         if self.resample_freq > 0:
             resample_transform = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=self.resample_freq)
             soundData = resample_transform(soundData)
 
-        # converts audio to mono
+        soundData = torch.mean(soundData, dim=0, keepdim=True)
+
         melspectrogram_transform = torchaudio.transforms.MelSpectrogram(
-            sample_rate=self.resample_freq,
-            n_mels=self.n_mels,
-        )
+        sample_rate=self.resample_freq, n_mels=self.n_mels)
         melspectrogram = melspectrogram_transform(soundData)
         melspectogram_db = torchaudio.transforms.AmplitudeToDB()(melspectrogram)
-
         fixed_length = 3 * (self.resample_freq//200)
         if melspectogram_db.shape[2] < fixed_length:
             melspectogram_db = torch.nn.functional.pad(
             melspectogram_db, (0, fixed_length - melspectogram_db.shape[2]))
         else:
             melspectogram_db = melspectogram_db[:, :, :fixed_length]
-
-
-        return soundData, self.resample_freq, melspectogram_db, target
-        
+        temp = np.array([self.get_index(target)])
+        one_hot = np.zeros((temp.size, self.num_features+1))
+        one_hot[np.arange(temp.size), temp] = 1 
+        return melspectogram_db, torch.tensor(self.get_index(target),dtype=torch.long)
     def __len__(self) -> int:
         return len(self.df)
-
     def __repr__(self) -> str:
         head = "Dataset " + self.__class__.__name__
         body = ["Number of datapoints: {}".format(self.__len__())]
@@ -117,7 +121,8 @@ class GunshotForensicDataset(torch.utils.data.Dataset):
         return ""
 
 if __name__ == "__main__":
-    data = GunshotForensicDataset(root="./",seq_duration=5.0)
-    soundData, resample_freq, mel, target = data[192]
+    data = GunshotForensicDataset(root="./",seq_duration=1.0)
+    mel, target = data[193]
     print(mel)
-    print(soundData)
+
+    print(target)
