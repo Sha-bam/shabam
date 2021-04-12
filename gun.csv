@@ -5,7 +5,7 @@ id,path,gun_name,caliber,gun_type,device
 3,./BoltAction22_iPhone/IP_004A_S04.wav,BoltAction22,.22,Rifle,iPhone
 4,./BoltAction22_iPhone/IP_004A_S05.wav,BoltAction22,.22,Rifle,iPhone
 5,./BoltAction22_iPhone/IP_004A_S06.wav,BoltAction22,.22,Rifle,iPhone
-6,./BoltAction22_iPhone/IP_004B_S01.wav,BoltAction22,.22,Rifle,iPhone
+-1,./BoltAction22_iPhone/IP_004B_S01.wav,BoltAction22,.22,Rifle,iPhone
 7,./BoltAction22_iPhone/IP_004B_S02.wav,BoltAction22,.22,Rifle,iPhone
 8,./BoltAction22_iPhone/IP_004B_S03.wav,BoltAction22,.22,Rifle,iPhone
 9,./BoltAction22_iPhone/IP_004B_S04.wav,BoltAction22,.22,Rifle,iPhone
